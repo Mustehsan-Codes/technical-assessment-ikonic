@@ -25,7 +25,12 @@ class OrderController extends Controller
     )]
     public function index(Request $request)
     {
-        $orders = Order::with('items')
+        $user = $request->user();
+        \Log::info('Listing orders for user', ['user_id' => $user->id]);
+
+        // FIX: Restricted order listing to the authenticated user's own orders
+        $orders = Order::where('user_id', $user->id)
+            ->with('items')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -54,7 +59,13 @@ class OrderController extends Controller
     )]
     public function show(Request $request, $id)
     {
-        $order = Order::with('items')->findOrFail($id);
+        $user = $request->user();
+        \Log::info('Showing order details', ['user_id' => $user->id, 'order_id' => $id]);
+
+        // FIX: Restricted order detail viewing to the owner of the order
+        $order = Order::where('user_id', $user->id)
+            ->with('items')
+            ->findOrFail($id);
 
         return response()->json([
             'data' => $order,

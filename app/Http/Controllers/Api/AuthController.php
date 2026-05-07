@@ -54,7 +54,7 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = $user->createToken('auth-token', ['*'], now()->addYear())->plainTextToken;
+        $token = $user->createToken('auth-token', ['*'], now()->addWeek())->plainTextToken;
 
         return response()->json([
             'user' => $user,
@@ -101,9 +101,10 @@ class AuthController extends Controller
             ]);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = Auth::user();
+        \Log::info('User logged in', ['user_id' => $user->id]);
 
-        $token = $user->createToken('auth-token', ['*'], now()->addYear())->plainTextToken;
+        $token = $user->createToken('auth-token', ['*'], now()->addWeek())->plainTextToken;
 
         return response()->json([
             'user' => $user,

@@ -42,7 +42,14 @@ class CheckoutController extends Controller
     )]
     public function process(Request $request)
     {
+        $request->validate([
+            'shipping_address' => 'required|string|max:500',
+            'payment_method' => 'required|string|in:credit_card,debit_card,paypal',
+            'billing_address' => 'nullable|string|max:500',
+        ]);
+
         $user = $request->user();
+        \Log::info('Initiating checkout process for user', ['user_id' => $user->id]);
 
         $cart = Cart::where('user_id', $user->id)
             ->where('status', 'active')
@@ -111,12 +118,28 @@ class CheckoutController extends Controller
     )]
     public function paymentProcess(Request $request, $orderId)
     {
-        $order = Order::findOrFail($orderId);
+        $user = $request->user();
+        \Log::info('Processing payment for order', ['user_id' => $user->id, 'order_id' => $orderId]);
+
+        // FIX: Added ownership verification to prevent unauthorized payment processing (IDOR)
+        $order = Order::where('user_id', $user->id)->findOrFail($orderId);
+
+        // FIX: Prevent reprocessing payment for orders already marked as paid
+        if ($order->status === 'paid') {
+            return response()->json([
+                'message' => 'Order is already paid',
+                'order' => $order,
+            ]);
+        }
 
         $paymentSuccess = rand(0, 10) > 2;
+        \Log::info('Payment simulation result', ['order_id' => $orderId, 'success' => $paymentSuccess]);
 
         if ($paymentSuccess) {
             $order->status = 'paid';
+            $order->save();
+        } else {
+            $order->status = 'failed';
             $order->save();
         }
 

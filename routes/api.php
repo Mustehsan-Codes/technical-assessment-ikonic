@@ -25,12 +25,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Cart
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart/items', [CartController::class, 'addItem']);
-    Route::post('/cart/items/{itemId}', [CartController::class, 'updateItem']);
+    Route::patch('/cart/items/{itemId}', [CartController::class, 'updateItem']);
     Route::delete('/cart/items/{itemId}', [CartController::class, 'removeItem']);
 
     // Checkout
     Route::post('/checkout', [CheckoutController::class, 'process']);
-    Route::get('/checkout/pay/{orderId}', [CheckoutController::class, 'paymentProcess']);
+    Route::post('/checkout/pay/{orderId}', [CheckoutController::class, 'paymentProcess']);
 
     // Orders
     Route::get('/orders', [OrderController::class, 'index']);

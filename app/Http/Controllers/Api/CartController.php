@@ -31,7 +31,12 @@ class CartController extends Controller
     )]
     public function index(Request $request)
     {
-        $cart = Cart::where('status', 'active')
+        $user = $request->user();
+        \Log::info('Fetching cart for user', ['user_id' => $user->id]);
+
+        // FIX: Added 'user_id' check to prevent IDOR where users could access each other's active carts
+        $cart = Cart::where('user_id', $user->id)
+            ->where('status', 'active')
             ->with('items.product')
             ->first();
 
@@ -157,7 +162,14 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $item = CartItem::findOrFail($itemId);
+        $user = $request->user();
+        \Log::info('Updating cart item', ['user_id' => $user->id, 'item_id' => $itemId, 'quantity' => $request->quantity]);
+
+        // FIX: Ensure the cart item belongs to the authenticated user's cart (preventing unauthorized item modification)
+        $item = CartItem::whereHas('cart', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->findOrFail($itemId);
+
         $item->quantity = $request->quantity;
         $item->save();
 
@@ -192,7 +204,14 @@ class CartController extends Controller
     )]
     public function removeItem($itemId)
     {
-        $item = CartItem::findOrFail($itemId);
+        $user = auth()->user();
+        \Log::info('Removing cart item', ['user_id' => $user->id, 'item_id' => $itemId]);
+
+        // FIX: Ensure the cart item belongs to the authenticated user's cart (preventing unauthorized item deletion)
+        $item = CartItem::whereHas('cart', function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->findOrFail($itemId);
+
         $item->delete();
 
         return response()->json([
