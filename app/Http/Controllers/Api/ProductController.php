@@ -36,7 +36,9 @@ class ProductController extends Controller
     )]
     public function index(Request $request)
     {
-        $query = Product::active();
+        \Log::info('Listing products', ['category_id' => $request->category_id, 'search' => $request->search]);
+        // FIX: Eager load 'category' to prevent N+1 query issues during response mapping
+        $query = Product::active()->with('category');
 
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
